@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 original_data = pd.read_excel('1_university_employment.xlsx', sheet_name=None, header=None)
+processed_data = []
 
 for sheet_name, df in original_data.items():
 
@@ -33,11 +34,18 @@ for sheet_name, df in original_data.items():
 
     if int(sheet_name) != 2018:
         def dataconvert(point):
+            month, day = map(int, str(point).split('.'))
+            return pd.Timestamp(year=int(sheet_name), month=month, day=day)
             
-        data['日期']
-        data['日期'] = pd.to_datetime(['日期'], errors='coerce')
-
+        data['日期']= data['日期'].apply(dataconvert)
+    data['日期'] = pd.to_datetime(data['日期'], errors='coerce')
+    data=data[['年份', '日期', '本科', '硕士', '博士', '高职', '整体' ]]
 
     print(f"Sheet: {sheet_name}")
     print(data.head())
 
+    processed_data.append(data)
+
+with pd.ExcelWriter('1_university_employment_cleaned.xlsx') as writer:
+    for i, df in enumerate(processed_data):
+        df.to_excel(writer, sheet_name=f'{i+2016}', index=False)
