@@ -89,7 +89,28 @@ def gpr_modeling(df, target_column):
     r2 = r2_score(y_test, y_pred)
     
     print(f"Model for {target_column} - RMSE: {rmse:.4f}, R²: {r2:.4f}")
+
+    # 以下是置信概率为99%的可视化代码
+    # # 可视化结果
+    # plt.figure(figsize=(12, 6))
+    # plt.scatter(range(len(y_test)), y_test, c='k', label='Actual')
+    # plt.plot(range(len(y_pred)), y_pred, 'b-', label='Predicted') 
+    # plt.fill_between(
+    #     range(len(y_pred)),
+    #     y_pred - 2.576 * y_std,  # 修改关键参数
+    #     y_pred + 2.576 * y_std,  # 修改关键参数
+    #     alpha=0.2,
+    #     color='blue',
+    #     label='99% confidence interval'  # 更新标签
+    # )
+    # plt.title(f"GPR Prediction for {target_column}")
+    # plt.xlabel("Sample index")
+    # plt.ylabel(target_column)
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
     
+    # 以下是置信概率为95%的可视化代码
     # 可视化结果
     plt.figure(figsize=(12, 6))
     plt.scatter(range(len(y_test)), y_test, c='k', label='Actual')
