@@ -73,6 +73,75 @@ for year in years:
         print(f"Error fitting {year}: {e}")
         params_by_year[year] = None
 
+
+ddd = pd.DataFrame(params_by_year).T
+ddd.columns = ["A", "K", "k", "x0"]
+print(ddd)
+
+fig, axs = plt.subplots(4, 1, figsize=(12, 16), sharex=True)
+
+# A系列（对数坐标）
+axs[0].semilogy(ddd.index, ddd["A"], "o-", color="blue")
+axs[0].set_title("A Value (Log Scale)")
+axs[0].grid(True, which="both", ls="--", alpha=0.5)
+
+# K系列
+axs[1].plot(ddd.index, ddd["K"], "s-", color="green")
+axs[1].set_title("K Value")
+axs[1].grid(True, ls="--", alpha=0.5)
+axs[1].set_ylim(0.8, 1.05)
+
+# k系列
+axs[2].plot(ddd.index, ddd["k"], "D-", color="purple")
+axs[2].set_title("k Value")
+axs[2].grid(True, ls="--", alpha=0.5)
+axs[2].set_ylim(0.04, 0.10)
+
+# x0系列
+axs[3].plot(ddd.index, ddd["x0"], "^-", color="red")
+axs[3].set_title("x0 Value")
+axs[3].grid(True, ls="--", alpha=0.5)
+axs[3].set_ylim(120, 160)
+axs[3].set_xlabel("Year")
+
+sample_days = [
+    70,
+    80,
+    90,
+    100,
+    110,
+    120,
+    130,
+    140,
+    150,
+    160,
+    170,
+    180,
+    190,
+    200,
+]  # 你可以根据需要调整采样天数
+plt.figure(figsize=(10, 6))
+
+for target_day in sample_days:
+    value_on_target_day = []
+    for year in years:
+        params = params_by_year[year]
+        if params is not None:
+            val = four_pl(target_day, *params)
+            value_on_target_day.append(val)
+        else:
+            value_on_target_day.append(np.nan)
+    plt.plot(years, value_on_target_day, marker="o", label=f"{target_day}日")
+
+plt.xlabel("年份")
+plt.ylabel("就业率拟合值")
+plt.title("不同采样天数各年就业率拟合值趋势")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+
 # ============================
 # 方法2: 按疫情分组拟合
 # ============================
