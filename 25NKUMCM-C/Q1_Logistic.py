@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from pmdarima import auto_arima
+from sklearn.metrics import mean_absolute_error
 
 
 years = range(2016, 2023)
@@ -122,7 +125,7 @@ def draw_attributes(ddd, params_by_year, subject):
         200,
     ]  # 你可以根据需要调整采样天数
 
-    plt.savefig("./Graphs/" + subject + "采样年际变化.png")
+    plt.savefig("./Graphs/" + subject + "参数年际变化.png")
     plt.figure(figsize=(10, 6))
 
     for target_day in sample_days:
@@ -142,8 +145,7 @@ def draw_attributes(ddd, params_by_year, subject):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig("./Graphs/" + subject + "参数年际变化.png")
-    plt.show()
+    plt.savefig("./Graphs/" + subject + "采样年际变化.png")
 
 
 def fit_by_group(data):
@@ -304,7 +306,6 @@ def show_comparison(data, params_by_year, group_params, group_ci, subject):
 
     plt.tight_layout()
     plt.savefig("./Graphs/" + subject + "两种拟合对比.png")
-    plt.show()
 
 
 def review(data, group_params):
@@ -340,13 +341,320 @@ def review(data, group_params):
         )
 
 
+# 拟合变量未来趋势，使用ARIMR
+def fit_attribute_ARIMR(ddd, target_attribute, numofyear):
+    """使用非季节性ARIMA模型预测未来5年数据
+
+    参数:
+        ddd - 包含历史数据的DataFrame
+        target_attribute - 要预测的参数名称
+
+    返回:
+        包含预测年份和值的DataFrame
+    """
+    from pmdarima import auto_arima
+    import pandas as pd
+
+    # 准备时间序列数据（按年聚合）
+    ts_data = ddd[[target_attribute]].dropna().copy()
+    ts_data.index = pd.to_datetime(ts_data.index.astype(str) + "-12-31")
+    ts_data = ts_data.resample("YE").mean()
+
+    # 自动选择最佳ARIMA参数（非季节性）
+    if target_attribute == "A":
+        model = auto_arima(
+            ts_data,
+            seasonal=False,
+            stepwise=False,
+            suppress_warnings=True,
+            error_action="ignore",
+            trace=True,
+            d=1,
+            start_p=0,
+            start_q=0,
+            max_p=3,
+            max_q=3,
+            max_order=6,
+            with_intercept=False,
+            information_criterion="bic",
+        )
+    elif target_attribute == "K":
+        model = auto_arima(
+            ts_data,
+            seasonal=False,
+            stepwise=False,
+            start_p=1,
+            start_q=1,
+            min_p=1,
+            min_q=1,
+            max_p=5,
+            max_q=5,
+            d=2,
+            test="adf",
+            information_criterion="bic",
+            trend="t",
+            max_order=12,
+            with_intercept=False,
+            suppress_warnings=True,
+            error_action="ignore",
+            trace=True,
+        )
+    elif target_attribute == "k":
+        model = auto_arima(
+            ts_data,
+            seasonal=False,
+            stepwise=False,
+            start_p=1,
+            start_q=1,
+            min_p=1,
+            min_q=1,
+            max_p=7,
+            max_q=7,
+            d=1,
+            test="adf",
+            information_criterion="bic",
+            trend="ct",
+            max_order=14,
+            with_intercept=True,
+            suppress_warnings=True,
+            error_action="ignore",
+            trace=True,
+        )
+    elif target_attribute == "x0":
+        model = auto_arima(
+            ts_data,
+            seasonal=False,  # 启用季节性成分
+            m=4,  # 设置4年周期
+            stepwise=True,
+            start_p=1,
+            start_q=1,
+            max_p=5,  # 降低最大p值
+            max_q=5,  # 降低最大q值
+            d=1,
+            test="adf",
+            information_criterion="aicc",  # 使用AICc准则
+            trend="c",  # 仅保留常数项
+            max_order=10,  # 降低最大阶数
+            with_intercept=True,
+            suppress_warnings=True,
+            error_action="ignore",
+            trace=True,
+        )
+
+    # 训练模型
+    model.fit(ts_data)
+
+    # 预测未来5年
+    forecast = model.predict(n_periods=numofyear)
+
+    # 生成预测年份
+    last_year = ts_data.index.max().year
+    forecast_years = [last_year + i for i in range(1, 6)]
+
+    # 限制K参数预测值不超过1
+    # 新增的截断逻辑
+    if target_attribute == "K":
+        forecast = np.clip(forecast, 0, 1)
+
+    return pd.DataFrame(
+        {"year": forecast_years, "value": forecast, "attribute": target_attribute}
+    )
+
+
+def predict_attr(ddd):
+    df1 = fit_attribute_ARIMR(ddd, "A", 5)
+    df2 = fit_attribute_ARIMR(ddd, "K", 5)
+    df3 = fit_attribute_ARIMR(ddd, "k", 5)
+    df4 = fit_attribute_ARIMR(ddd, "x0", 5)
+
+    # 创建2x2的子图布局
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    fig.suptitle("Attribute Values by Year", fontsize=16)
+
+    # 绘制第一个子图 (A)
+    axes[0, 0].plot(df1["year"], df1["value"], marker="o", color="blue")
+    axes[0, 0].set_title("Attribute A")
+    axes[0, 0].set_xlabel("Year")
+    axes[0, 0].set_ylabel("Value")
+    axes[0, 0].grid(True, linestyle="--", alpha=0.7)
+
+    # 绘制第二个子图 (K)
+    axes[0, 1].plot(df2["year"], df2["value"], marker="s", color="green")
+    axes[0, 1].set_title("Attribute K")
+    axes[0, 1].set_xlabel("Year")
+    axes[0, 1].set_ylabel("Value")
+    axes[0, 1].grid(True, linestyle="--", alpha=0.7)
+    axes[0, 1].set_ylim(0.95, 1.05)  # 调整Y轴范围以突出变化
+
+    # 绘制第三个子图 (k)
+    axes[1, 0].plot(df3["year"], df3["value"], marker="^", color="red")
+    axes[1, 0].set_title("Attribute k")
+    axes[1, 0].set_xlabel("Year")
+    axes[1, 0].set_ylabel("Value")
+    axes[1, 0].grid(True, linestyle="--", alpha=0.7)
+
+    # 绘制第四个子图 (x0)
+    axes[1, 1].plot(df4["year"], df4["value"], marker="d", color="purple")
+    axes[1, 1].set_title("Attribute x0")
+    axes[1, 1].set_xlabel("Year")
+    axes[1, 1].set_ylabel("Value")
+    axes[1, 1].grid(True, linestyle="--", alpha=0.7)
+
+    # 调整布局
+    plt.tight_layout(rect=[0, 0, 1, 0.96])  # 为总标题留出空间
+
+    dfA = fit_attribute_ARIMR(ddd, "A", 5)
+    dfK = fit_attribute_ARIMR(ddd, "K", 5)
+    dfk = fit_attribute_ARIMR(ddd, "k", 5)
+    dfx0 = fit_attribute_ARIMR(ddd, "x0", 5)
+
+    # 将预测结果转换为宽格式
+    pred_A = dfA.set_index("year")["value"].rename("A")
+    pred_K = dfK.set_index("year")["value"].rename("K")
+    pred_k = dfk.set_index("year")["value"].rename("k")
+    pred_x0 = dfx0.set_index("year")["value"].rename("x0")
+
+    # 合并预测数据
+    pred_df = pd.concat([pred_A, pred_K, pred_k, pred_x0], axis=1)
+
+    # 与历史数据拼接
+    fff = pd.concat([ddd, pred_df])
+
+    # 按年份排序并填充可能的空值
+    fff = fff.sort_index().fillna(method="ffill")
+
+    plt.figure(figsize=(15, 10))
+
+    attributes = ["A", "K", "k", "x0"]
+    for i, attr in enumerate(attributes, 1):
+        plt.subplot(2, 2, i)
+
+        # 绘制历史数据（2016-2022）
+        plt.plot(
+            fff.loc[:2022].index,
+            fff.loc[:2022][attr],
+            "o-",
+            label="历史数据",
+            markersize=5,
+        )
+
+        # 绘制预测数据（2023-2027）
+        plt.plot(
+            fff.loc[2023:].index,
+            fff.loc[2023:][attr],
+            "s--",
+            color="red",
+            label="预测数据",
+            markersize=5,
+        )
+
+        plt.title(f"{attr}参数变化趋势")
+        plt.xlabel("年份")
+        plt.ylabel("参数值")
+        plt.xticks(range(2016, 2028, 2))
+        plt.grid(True)
+        plt.legend()
+
+    plt.tight_layout()
+    print(pred_A)
+    print(pred_K)
+    print(pred_k)
+    print(pred_x0)
+
+    # 生成预测曲线
+    plt.figure(figsize=(12, 8))
+    x = np.linspace(0, 365, 100)
+
+    for year in range(2023, 2028):
+        params = fff.loc[year][["A", "K", "k", "x0"]]
+        y = four_pl(x, *params)
+        plt.plot(x, y, label=f"{year}年预测", linestyle="--" if year > 2022 else "-")
+
+    # 绘制历史基准曲线（2022年）
+    hist_params = fff.loc[2022][["A", "K", "k", "x0"]]
+    y_hist = four_pl(x, *hist_params)
+    plt.plot(x, y_hist, "k-", linewidth=2, label="2022基准")
+
+    plt.title("就业率预测曲线（2023-2027）")
+    plt.xlabel("年积日")
+    plt.ylabel("就业率(%)")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    return fff
+
+
+def show_prediction_comparison(params_by_year, pred_data, subject, data):
+    plt.figure(figsize=(15, 8))
+    x = np.linspace(0, 365, 100)
+    # 生成渐变色（浅绿→深绿）
+    pred_colors = plt.cm.GnBu(np.linspace(0.3, 0.9, len(pred_data)))
+
+    # 定义从冷色到暖色的渐变颜色映射
+    # 2016(冷色:蓝绿色) -> 2022(暖色:橙红色)
+    cool_color = np.array([0, 0, 255]) / 255  # 蓝绿色
+    warm_color = np.array([255, 0, 0]) / 255  # 橙红色
+    # 生成7个过渡颜色
+    colors = [cool_color + (warm_color - cool_color) * i / 6 for i in range(7)]
+
+    for year in years:
+        year_data = data[data["year"] == year]
+        plt.scatter(
+            year_data["day_of_year"],
+            year_data["employment_rate"],
+            label=f"{year} Data",
+            alpha=0.6,
+            color=colors[year - 2016],
+        )
+
+        if params_by_year[year] is not None:
+            A, K, k, x0 = params_by_year[year]
+            x_fit = np.linspace(
+                min(year_data["day_of_year"]), max(year_data["day_of_year"]), 100
+            )
+            y_fit = four_pl(x_fit, A, K, k, x0)
+            plt.plot(
+                x_fit,
+                y_fit,
+                "--",
+                linewidth=2,
+                label=f"{year} Fit",
+                color=colors[year - 2016],
+            )
+    # 绘制预测曲线（2023-2027）
+    for i, (year, row) in enumerate(pred_data.iterrows()):
+        y_pred = four_pl(x, row["A"], row["K"], row["k"], row["x0"])
+        plt.plot(
+            x,
+            y_pred,
+            color=pred_colors[i],
+            linewidth=2.5,
+            linestyle="--",
+            label=f"{year}预测",
+        )
+
+    # 统一可视化样式
+    plt.title(f"{subject}就业率历史拟合与预测对比", fontsize=14)
+    plt.xlabel("年积日", fontsize=12)
+    plt.ylabel("就业率(%)", fontsize=12)
+    plt.legend(ncol=2, loc="upper left", framealpha=0.9)
+    plt.grid(True, linestyle=":", alpha=0.5)
+    plt.xlim(0, 365)
+    plt.tight_layout()
+    plt.savefig(f"./Graphs/{subject}_full_comparison.png", dpi=300, bbox_inches="tight")
+
+
 def function(subject):
     data = dataimport(subject)  # 可以替换为"硕士"或"博士"
     ddd, params_by_year = fit_by_year(data)
+    print(ddd)
     draw_attributes(ddd, params_by_year, subject)
     group_params, group_ci = fit_by_group(data)
     show_comparison(data, params_by_year, group_params, group_ci, subject)
     review(data, group_params)
+    fff = predict_attr(ddd)
+    show_prediction_comparison(params_by_year, fff.loc[2023:2027], subject, data)
+    plt.show()
 
 
 def main():
