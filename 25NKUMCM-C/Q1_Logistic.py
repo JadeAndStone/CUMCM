@@ -125,7 +125,7 @@ def draw_attributes(ddd, params_by_year, subject):
         200,
     ]  # 你可以根据需要调整采样天数
 
-    plt.savefig("./Graphs/" + subject + "采样年际变化.png")
+    plt.savefig("./Graphs/" + subject + "参数年际变化.png")
     plt.figure(figsize=(10, 6))
 
     for target_day in sample_days:
@@ -145,7 +145,7 @@ def draw_attributes(ddd, params_by_year, subject):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig("./Graphs/" + subject + "参数年际变化.png")
+    plt.savefig("./Graphs/" + subject + "采样年际变化.png")
 
 
 def fit_by_group(data):
@@ -423,19 +423,18 @@ def fit_attribute_ARIMR(ddd, target_attribute, numofyear):
     elif target_attribute == "x0":
         model = auto_arima(
             ts_data,
-            seasonal=False,
-            stepwise=False,
+            seasonal=False,  # 启用季节性成分
+            m=4,  # 设置4年周期
+            stepwise=True,
             start_p=1,
             start_q=1,
-            min_p=1,
-            min_q=1,
-            max_p=9,  # 从7提升至9以适应更大波动
-            max_q=9,  # 从7提升至9
+            max_p=5,  # 降低最大p值
+            max_q=5,  # 降低最大q值
             d=1,
             test="adf",
-            information_criterion="bic",
-            trend="ct",
-            max_order=18,  # 从14提升至18
+            information_criterion="aicc",  # 使用AICc准则
+            trend="c",  # 仅保留常数项
+            max_order=10,  # 降低最大阶数
             with_intercept=True,
             suppress_warnings=True,
             error_action="ignore",
@@ -662,9 +661,9 @@ def main():
     plt.rcParams["font.sans-serif"] = ["SimHei"]
     plt.rcParams["axes.unicode_minus"] = False
 
-    # function("本科")
-    # function("硕士")
-    # function("博士")
+    function("本科")
+    function("硕士")
+    function("博士")
     function("整体")
 
 
