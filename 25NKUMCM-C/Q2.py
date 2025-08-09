@@ -34,7 +34,7 @@ df=process(df)
 df['date'] = pd.to_datetime(df['date'])
 df['year'] = df['date'].dt.year
 
-year_start = pd.to_datetime(df['year'].astype(str) + '-01-01')
+year_start = pd.to_datetime(df['year'].astype(str) + '-01-16')
 year_next = pd.to_datetime(df['year'].astype(str) + '-07-07')
 df['progress'] = (df['date'] - year_start).dt.total_seconds() / (year_next - year_start).dt.total_seconds()
 
@@ -43,7 +43,7 @@ cov_df=pd.read_excel('./extra_data.xlsx')
 df = df.merge(cov_df, on='year', how='left')
 
 progress = df['progress'].values.reshape(-1,1)
-poly = PolynomialFeatures(degree=2, include_bias=False)
+poly = PolynomialFeatures(degree=3, include_bias=False)
 P = poly.fit_transform(progress)
 
 cov_names = ['ratio_gdp','num_student','num_laborer','ratio_urban']
@@ -61,12 +61,13 @@ y = df['rate'].values
 alphas = np.logspace(-6, 6, 25)
 model = RidgeCV(alphas=alphas, cv=5).fit(X, y)
 
-future_year = 2025
+future_year = 2022
 
-ratio_gdp_2025 = 5
-num_student_2025 = 670 
-num_laborer_2025 = 8.7
-ratio_urban_2025 = 66.3
+ratio_gdp_2025 = 3.1
+num_student_2025 = 704.2
+num_laborer_2025 = 8.76
+ratio_urban_2025 = 65.22
+
 cov_future = np.array([ratio_gdp_2025,num_student_2025,num_laborer_2025,ratio_urban_2025])
 
 future_progress = np.linspace(0.05, 0.95, 10)
@@ -80,7 +81,7 @@ X_f = np.hstack([P_f, C_f, inter_f])
 
 y_f = model.predict(X_f)
 
-start = pd.to_datetime(f"{future_year}-01-01")
+start = pd.to_datetime(f"{future_year}-01-16")
 end = pd.to_datetime(f"{future_year}-07-07")
 future_dates = [start + (end - start) * p for p in future_progress]
 
