@@ -80,7 +80,7 @@ def fit_by_year(data):
     return ddd, params_by_year
 
 
-def draw_attributes(ddd, params_by_year):
+def draw_attributes(ddd, params_by_year, subject):
 
     fig, axs = plt.subplots(4, 1, figsize=(8, 11), sharex=True)
 
@@ -93,19 +93,16 @@ def draw_attributes(ddd, params_by_year):
     axs[1].plot(ddd.index, ddd["K"], "s-", color="green")
     axs[1].set_title("K Value")
     axs[1].grid(True, ls="--", alpha=0.5)
-    axs[1].set_ylim(0.8, 1.05)
 
     # k系列
     axs[2].plot(ddd.index, ddd["k"], "D-", color="purple")
     axs[2].set_title("k Value")
     axs[2].grid(True, ls="--", alpha=0.5)
-    axs[2].set_ylim(0.04, 0.10)
 
     # x0系列
     axs[3].plot(ddd.index, ddd["x0"], "^-", color="red")
     axs[3].set_title("x0 Value")
     axs[3].grid(True, ls="--", alpha=0.5)
-    axs[3].set_ylim(120, 160)
     axs[3].set_xlabel("Year")
 
     sample_days = [
@@ -124,6 +121,8 @@ def draw_attributes(ddd, params_by_year):
         190,
         200,
     ]  # 你可以根据需要调整采样天数
+
+    plt.savefig("./Graphs/" + subject + "采样年际变化.png")
     plt.figure(figsize=(10, 6))
 
     for target_day in sample_days:
@@ -143,6 +142,7 @@ def draw_attributes(ddd, params_by_year):
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
+    plt.savefig("./Graphs/" + subject + "参数年际变化.png")
     plt.show()
 
 
@@ -212,7 +212,7 @@ def fit_by_group(data):
     return group_params, group_ci
 
 
-def show_comparison(data, params_by_year, group_params, group_ci):
+def show_comparison(data, params_by_year, group_params, group_ci, subject):
     # ============================
     # 可视化比较两种拟合方法
     # ============================
@@ -303,6 +303,7 @@ def show_comparison(data, params_by_year, group_params, group_ci):
     plt.grid(True)
 
     plt.tight_layout()
+    plt.savefig("./Graphs/" + subject + "两种拟合对比.png")
     plt.show()
 
 
@@ -342,9 +343,9 @@ def review(data, group_params):
 def function(subject):
     data = dataimport(subject)  # 可以替换为"硕士"或"博士"
     ddd, params_by_year = fit_by_year(data)
-    draw_attributes(ddd, params_by_year)
+    draw_attributes(ddd, params_by_year, subject)
     group_params, group_ci = fit_by_group(data)
-    show_comparison(data, params_by_year, group_params, group_ci)
+    show_comparison(data, params_by_year, group_params, group_ci, subject)
     review(data, group_params)
 
 
