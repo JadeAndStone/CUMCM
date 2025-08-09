@@ -5,6 +5,7 @@ from scipy.optimize import curve_fit
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from pmdarima import auto_arima
 from sklearn.metrics import mean_absolute_error
+import datetime
 
 
 years = range(2016, 2023)
@@ -236,7 +237,7 @@ def show_comparison(data, params_by_year, group_params, group_ci, subject):
             year_data["day_of_year"],
             year_data["employment_rate"],
             label=f"{year} Data",
-            alpha=0.6,
+            alpha=0.5,
             color=colors[year - 2016],
         )
 
@@ -249,7 +250,7 @@ def show_comparison(data, params_by_year, group_params, group_ci, subject):
             plt.plot(
                 x_fit,
                 y_fit,
-                "--",
+                "-",
                 linewidth=2,
                 label=f"{year} Fit",
                 color=colors[year - 2016],
@@ -585,10 +586,10 @@ def predict_attr(ddd):
 
 
 def show_prediction_comparison(params_by_year, pred_data, subject, data):
-    plt.figure(figsize=(15, 8))
+    plt.figure(figsize=(12, 8))
     x = np.linspace(0, 365, 100)
     # 生成渐变色（浅绿→深绿）
-    pred_colors = plt.cm.GnBu(np.linspace(0.3, 0.9, len(pred_data)))
+    pred_colors = plt.cm.GnBu(np.linspace(0.9, 0.5, len(pred_data)))
 
     # 定义从冷色到暖色的渐变颜色映射
     # 2016(冷色:蓝绿色) -> 2022(暖色:橙红色)
@@ -603,7 +604,7 @@ def show_prediction_comparison(params_by_year, pred_data, subject, data):
             year_data["day_of_year"],
             year_data["employment_rate"],
             label=f"{year} Data",
-            alpha=0.6,
+            alpha=0.2,
             color=colors[year - 2016],
         )
 
@@ -616,16 +617,19 @@ def show_prediction_comparison(params_by_year, pred_data, subject, data):
             plt.plot(
                 x_fit,
                 y_fit,
-                "--",
-                linewidth=2,
+                "-",
+                linewidth=1,
                 label=f"{year} Fit",
                 color=colors[year - 2016],
+                alpha=0.7,
             )
     # 绘制预测曲线（2023-2027）
+
+    x_pred = np.linspace(min(data["day_of_year"]), max(data["day_of_year"]), 100)
     for i, (year, row) in enumerate(pred_data.iterrows()):
-        y_pred = four_pl(x, row["A"], row["K"], row["k"], row["x0"])
+        y_pred = four_pl(x_pred, row["A"], row["K"], row["k"], row["x0"])
         plt.plot(
-            x,
+            x_pred,
             y_pred,
             color=pred_colors[i],
             linewidth=2.5,
@@ -639,7 +643,6 @@ def show_prediction_comparison(params_by_year, pred_data, subject, data):
     plt.ylabel("就业率(%)", fontsize=12)
     plt.legend(ncol=2, loc="upper left", framealpha=0.9)
     plt.grid(True, linestyle=":", alpha=0.5)
-    plt.xlim(0, 365)
     plt.tight_layout()
     plt.savefig(f"./Graphs/{subject}_full_comparison.png", dpi=300, bbox_inches="tight")
 
@@ -654,16 +657,47 @@ def function(subject):
     review(data, group_params)
     fff = predict_attr(ddd)
     show_prediction_comparison(params_by_year, fff.loc[2023:2027], subject, data)
+
+    predict_xtest = range(80, 180, 10)
+
+    predict_df = pd.DataFrame(columns=["时间", "就业率"])
+
+    for year in [2025, 2026]:
+        params = fff.loc[year][["A", "K", "k", "x0"]]
+        for x in predict_xtest:
+            # 计算就业率
+            rate = round(four_pl(x, *params) * 100, 1)
+
+            # 生成日期（示例：20250101）
+            date_obj = datetime.datetime(year, 1, 1) + datetime.timedelta(days=x - 1)
+            date_str = date_obj.strftime("%Y%m%d")
+
+            # 添加到数据框
+            predict_df.loc[date_str] = [date_str, rate]
+
+    # 设置索引并重命名列
+    predict_df.index.name = "日期"
+    predict_df.columns = [
+        "时间（格式为20230101，即年份+月份+日期）",
+        "就业率（%），保留一位小数",
+    ]
+
+    # 保存结果
+    predict_df.to_excel(f"./附件二：单变量预测.xlsx", index=False)
+    print(predict_df.head())
+
     plt.show()
+
+    # 创建日期索引（示例：假设年份为2023，实际会根据预测年份变化）
 
 
 def main():
     plt.rcParams["font.sans-serif"] = ["SimHei"]
     plt.rcParams["axes.unicode_minus"] = False
 
-    function("本科")
-    function("硕士")
-    function("博士")
+    # function("本科")
+    # function("硕士")
+    # function("博士")
     function("整体")
 
 
