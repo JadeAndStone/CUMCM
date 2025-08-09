@@ -143,7 +143,6 @@ def draw_attributes(ddd, params_by_year, subject):
     plt.grid(True)
     plt.tight_layout()
     plt.savefig("./Graphs/" + subject + "参数年际变化.png")
-    plt.show()
 
 
 def fit_by_group(data):
@@ -304,7 +303,6 @@ def show_comparison(data, params_by_year, group_params, group_ci, subject):
 
     plt.tight_layout()
     plt.savefig("./Graphs/" + subject + "两种拟合对比.png")
-    plt.show()
 
 
 def review(data, group_params):
@@ -343,19 +341,22 @@ def review(data, group_params):
 def function(subject):
     data = dataimport(subject)  # 可以替换为"硕士"或"博士"
     ddd, params_by_year = fit_by_year(data)
+    print(ddd)
     draw_attributes(ddd, params_by_year, subject)
     group_params, group_ci = fit_by_group(data)
     show_comparison(data, params_by_year, group_params, group_ci, subject)
     review(data, group_params)
+
+    plt.show()
 
 
 def main():
     plt.rcParams["font.sans-serif"] = ["SimHei"]
     plt.rcParams["axes.unicode_minus"] = False
 
-    function("本科")
-    function("硕士")
-    function("博士")
+    # function("本科")
+    # function("硕士")
+    # function("博士")
     function("整体")
 
 
