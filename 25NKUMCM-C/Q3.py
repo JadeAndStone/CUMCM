@@ -208,9 +208,9 @@ def study_variable_impact(df, global_params, model_resid, cov_names,
                     coef_values = model_resid.coef_[1:1+max_vars]
                     sorted_idx = np.argsort(-np.abs(coef_values))
                     selected_vars = [cov_names[i] for i in sorted_idx[:num_vars]]
-
                 # 2. 降采样
                 df_year = df[df['year'] == year].copy()
+                # print(df_year)
                 if len(df_year) < 4:
                     continue
                 if 12 < len(df_year):
@@ -232,6 +232,7 @@ def study_variable_impact(df, global_params, model_resid, cov_names,
                     X_low = np.hstack([S_low, cov_low])
                 else:
                     X_low = S_low
+                # print(X_low==S_low)
 
                 y_resid_low = lowres_df['rate'].values - four_pl(lowres_df['progress'].values, *params_local)
                 model_local = Ridge(alpha=model_resid.alpha_).fit(X_low, y_resid_low)
@@ -289,7 +290,6 @@ def study_variable_impact(df, global_params, model_resid, cov_names,
             }
 
         results[num_vars] = year_results
-
     return results
 
 
