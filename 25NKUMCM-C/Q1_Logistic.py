@@ -621,7 +621,7 @@ def show_prediction_comparison(params_by_year, pred_data, subject, data):
                 linewidth=1,
                 label=f"{year} Fit",
                 color=colors[year - 2016],
-                alpha=0.7,
+                alpha=0.9,
             )
     # 绘制预测曲线（2023-2027）
 
@@ -666,7 +666,7 @@ def function(subject):
         params = fff.loc[year][["A", "K", "k", "x0"]]
         for x in predict_xtest:
             # 计算就业率
-            rate = round(four_pl(x, *params) * 100, 1)
+            rate = str(round(four_pl(x, *params) * 100, 1))
 
             # 生成日期（示例：20250101）
             date_obj = datetime.datetime(year, 1, 1) + datetime.timedelta(days=x - 1)
