@@ -304,20 +304,14 @@ if __name__ == '__main__':
     
     # 分辨率参数设置
     resolutions = [5, 10, 15, 20, 24]
-    target_years = [2016, 2019, 2022]
-    n_iter = 30  # 蒙特卡洛迭代次数
+    target_years = [2016]
+    n_iter = 50  # 蒙特卡洛迭代次数
     
     confidence_records = {year: [] for year in target_years}
     resolution_results = {}
     
     # 获取全局模型参数
     global_params = [A_fit, K_fit, k_fit, x0_fit]
-    
-    
-    
-    # 设置研究参数
-    target_years = [2016, 2019, 2022]
-    n_iter = 30
     
     # 执行变量数量研究
     var_impact_results = study_variable_impact(
@@ -355,10 +349,6 @@ if __name__ == '__main__':
     for year in target_years:
         conf_values = confidence_data[year]
         max_idx = np.argmax(conf_values)
-        plt.annotate(f'最优: {num_vars_list[max_idx]}变量',
-                     xy=(num_vars_list[max_idx], conf_values[max_idx]),
-                     xytext=(num_vars_list[max_idx]+0.5, conf_values[max_idx]-0.05),
-                     arrowprops=dict(arrowstyle='->', color='black'))
     
     plt.tight_layout()
     plt.savefig('variable_count_vs_confidence.png', dpi=300)
