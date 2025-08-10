@@ -288,7 +288,7 @@ plt.title('2025和2026年就业率预测趋势')
 plt.legend()
 plt.grid(True, linestyle='--', alpha=0.5)
 plt.tight_layout()
-plt.savefig('./Q2_trend_prediction.png', dpi=300)
+# plt.savefig('./Q2_trend_prediction.png', dpi=300)
 plt.close()
 
 # ============================
@@ -437,7 +437,7 @@ for group_idx, group in enumerate(groups):
     plt.fill_between(x_fit, ci_lower, ci_upper, color='r', alpha=0.2, label='95%置信区间')
         
 plt.tight_layout()
-plt.savefig('./Q2_covid_analysis.png')
+# plt.savefig('./Q2_covid_analysis.png')
 plt.close()
 
 # 分组拟合结果分析
@@ -680,7 +680,7 @@ plt.axvline(x=0.5, color='gray', linestyle='-', alpha=0.2)
 
 # 保存图片
 plt.tight_layout(rect=[0, 0.05, 1, 0.95])  # 为底部图例留空间
-plt.savefig('./Q2_covid_comparison_professional.png', dpi=300, bbox_inches='tight')
+# plt.savefig('./Q2_covid_comparison_professional.png', dpi=300, bbox_inches='tight')
 plt.close()
 
 print("\n所有分析完成!")
