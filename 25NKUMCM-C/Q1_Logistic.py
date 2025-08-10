@@ -656,6 +656,7 @@ def function(subject):
     show_comparison(data, params_by_year, group_params, group_ci, subject)
     review(data, group_params)
     fff = predict_attr(ddd)
+    print(fff)
     show_prediction_comparison(params_by_year, fff.loc[2023:2027], subject, data)
 
     predict_xtest = range(80, 180, 10)
