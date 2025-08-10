@@ -1,4 +1,3 @@
-# two_stage_interpolation.py
 import pandas as pd, numpy as np, datetime, random, json
 from scipy.optimize import curve_fit
 from sklearn.linear_model import RidgeCV
@@ -6,11 +5,9 @@ from sklearn.preprocessing import StandardScaler
 import warnings
 warnings.filterwarnings('ignore')
 
-# 4-parameter logistic
 def four_pl(x, A, K, k, x0):
     return A + (K - A) / (1 + np.exp(-k * (x - x0)))
 
-# process the worksheet dict (adopted from your Q2 structure)
 def process_file(sheet_dict):
     result = pd.DataFrame(columns=['date','rate'])
     for year in sheet_dict:
@@ -37,7 +34,6 @@ def process_file(sheet_dict):
         result = pd.concat([result, temp.iloc[1:,:].reset_index(drop=True)], axis=0)
     return result
 
-# --- Load data ---
 xls = pd.ExcelFile('./Employment rate.xlsx')
 sheets = {name: xls.parse(name) for name in xls.sheet_names}
 df = process_file(sheets)
@@ -49,20 +45,16 @@ df['date'] = pd.to_datetime(df['date'], errors='coerce')
 df = df.dropna(subset=['date','rate']).reset_index(drop=True)
 df['year'] = df['date'].dt.year
 
-# define progress mapping (Jan1 -> Sep1 interval, consistent with your code)
 year_start = pd.to_datetime(df['year'].astype(str) + '-01-01')
 year_next = pd.to_datetime(df['year'].astype(str) + '-09-01')
 df['progress'] = (df['date'] - year_start).dt.total_seconds() / (year_next - year_start).dt.total_seconds()
 df['progress'] = np.clip(df['progress'], 0, 1)
 
-# read covariates
 cov_df = pd.read_excel('./extra_data.xlsx')
 if 'year' not in cov_df.columns:
     raise ValueError("extra_data.xlsx must contain 'year' column")
 df = df.merge(cov_df, on='year', how='left')
 
-# --- Stage 1: trend fit (4PL) ---
-# train on pre-covid years (<=2019) by default; change if you want
 train_mask = df['year'] <= 2019
 train_df = df[train_mask].copy().reset_index(drop=True)
 progress_train = train_df['progress'].values
@@ -78,7 +70,6 @@ print("Fitted 4PL params:", params)
 df['trend'] = four_pl(df['progress'].values, *params)
 df['resid'] = df['rate'] - df['trend']
 
-# --- Stage 2: residual regression ---
 cov_names = [c for c in cov_df.columns if c!='year']
 if len(cov_names)==0:
     raise ValueError("No covariates found in extra_data.xlsx (other than 'year').")
@@ -94,7 +85,6 @@ alphas = np.logspace(-6,6,25)
 model_resid = RidgeCV(alphas=alphas, cv=3).fit(X_all, y_resid)
 print("Residual model fitted. Coef sample:", model_resid.coef_[:8])
 
-# --- interpolation per historical year (produce Attachment4) ---
 def interp_year(year, m=24):
     p_grid = np.linspace(0.0, 1.0, m)
     base = four_pl(p_grid, *params)
@@ -120,7 +110,6 @@ interp_all = pd.concat(interp_list, ignore_index=True)
 interp_all.to_excel('./Attachment4_interpolated.xlsx', index=False)
 print("Saved Attachment4_interpolated.xlsx:", len(interp_all), "rows")
 
-# --- strict mask-and-recover evaluation (retrain without hidden points) ---
 def strict_mask_recover(year, hide_frac=0.3, n_iter=30):
     year_df = df[df['year']==year].reset_index()
     n = len(year_df)
@@ -298,13 +287,16 @@ if __name__ == '__main__':
     from sklearn.linear_model import Ridge
     from scipy.optimize import curve_fit
     import random
-
+    import matplotlib
+    # 设置中文字体
+    matplotlib.rcParams['font.sans-serif'] = ['SimHei']
+    matplotlib.rcParams['axes.unicode_minus'] = False
     # 高分辨率参考网格（固定为24点/年）
     REF_GRID = np.linspace(0, 1, 24)
     
     # 分辨率参数设置
     resolutions = [5, 10, 15, 20, 24]
-    target_years = [2016]
+    target_years = list(range(2018,2023,1))
     n_iter = 50  # 蒙特卡洛迭代次数
     
     confidence_records = {year: [] for year in target_years}
@@ -435,12 +427,12 @@ if __name__ == '__main__':
     plt.figure(figsize=(10, 6))
     for year in target_years:
         plt.plot(resolutions, confidence_records[year], 'o-', label=f"{year}")
-    plt.xlabel("Resolution (samples/year)")
-    plt.ylabel("Confidence score (1/(MAE_mean+MAE_std))")
-    plt.title("Resolution vs Confidence")
+    plt.xlabel("分辨率")
+    plt.ylabel("插值可信度 (1/(MAE_mean+MAE_std))")
+    plt.title("分辨率与插值可信度关系")
     plt.legend()
     plt.grid(True)
-    plt.savefig("resolution_vs_confidence_corrected.png", dpi=300)
+    plt.savefig("Resolution vs Confidence.png", dpi=300)
     plt.close()
     
     # 保存结果
